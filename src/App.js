@@ -1,31 +1,68 @@
+import React, {useEffect, useState} from 'react';
 import './App.css';
 import {Container} from "semantic-ui-react";
 import MainHeader from "./components/MainHeader";
 import NewEntryForm from "./components/NewEntryForm";
 import DisplayBalance from "./components/DisplayBalance";
 import DisplayBalances from "./components/DisplayBalances";
-import EntryLine from "./components/EntryLine";
+import EntryLines from "./components/EntryLines";
+import ModalEdit from "./components/ModalEdit";
+import {useDispatch, useSelector} from 'react-redux';
+import {getALLEntries} from "./actions/entries.actions";
 
 function App() {
-  return (
-    <Container>
+    const [incomeTotal, setIncomeTotal] = useState(0);
+    const [expenseTotal, setExpenseTotal] = useState(0);
+    const [total, setTotal] = useState(0);
+    const [entry, setEntry] = useState({});
+    const {isOpen, id} = useSelector(state => state.modals);
+    const entries = useSelector(state => state.entries);
 
-        <MainHeader title="Budjet"/>
+    useEffect(() => {
+        const index = entries.findIndex(entry => entry.id === id);
+        setEntry(entries[index]);
+    }, [isOpen, id, entries]);
 
-        <DisplayBalance size='small' title="Your balance" value="2,550.43"/>
+    useEffect(() => {
+        let totalIncomes = 0;
+        let totalExpenses = 0;
+        entries.map(entry => {
+            if (entry.isExpense) {
+                return (totalExpenses += Number(entry.value));
+            }else{
+                return (totalIncomes += Number(entry.value));
+            }
+        });
+        setTotal(totalIncomes - totalExpenses);
+        setExpenseTotal(totalExpenses);
+        setIncomeTotal(totalIncomes);
+    }, [entries]);
 
-        <DisplayBalances />
+    const dispatch = useDispatch();
 
-        <MainHeader title="History" type="h3" />
+    useEffect(() => {
+        dispatch(getALLEntries());
+    }, [dispatch]);
 
-        <EntryLine description="Expense" value="$10,00" isExpense={true}/>
-        <EntryLine description="Income" value="$100,00"/>
+    return (
+        <Container>
 
-        <MainHeader title="Add new transaction" type="h3" />
+            <MainHeader title="Budjet"/>
 
-        <NewEntryForm />
-    </Container>
-  );
+            <DisplayBalance size='small' title="Your balance" value={total}/>
+
+            <DisplayBalances incomeTotal={incomeTotal} expenseTotal={expenseTotal}/>
+
+            <MainHeader title="History" type="h3"/>
+
+            <EntryLines entries={entries} />
+
+            <MainHeader title="Add new transaction" type="h3"/>
+
+            <NewEntryForm />
+            <ModalEdit isOpen={isOpen} {...entry} />
+        </Container>
+    );
 }
 
 export default App;
